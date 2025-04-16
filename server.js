@@ -2,6 +2,9 @@
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
+const koreaTime = new Date().toLocaleString("ko-KR", {
+  timeZone: "Asia/Seoul",
+});
 
 
 // CORS 허용 + JSON 파싱
@@ -14,14 +17,14 @@ const logs = [];
 app.post('/track/view', (req, res) => {
   const { media, userkey } = req.body;
   console.log("📥 view 받은 데이터:", media, userkey);
-  logs.push({ media, userkey, event: 'view', timestamp: new Date() });
+  logs.push({ media, userkey, event: 'view', timestamp: koreaTime() });
   res.status(200).send({ ok: true });
 });
 
 app.post('/track/complete', (req, res) => {
   const { media, userkey } = req.body;
   console.log("📥 complete 받은 데이터:", media, userkey);
-  logs.push({ media, userkey, event: 'complete', timestamp: new Date() });
+  logs.push({ media, userkey, event: 'complete', timestamp: koreaTime() });
   res.status(200).send({ ok: true });
 });
 
