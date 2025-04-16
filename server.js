@@ -40,7 +40,7 @@ app.post('/track/complete', (req, res) => {
 
 // 로그 전체 보기용 (테스트용)
 app.get('/track/logs', (req, res) => {
-  res.json(logs);
+  res.json(db.data.logs);
 });
 
 app.listen(port, () => {
