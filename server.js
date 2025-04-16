@@ -13,12 +13,14 @@ const logs = [];
 
 app.post('/track/view', (req, res) => {
   const { media, userkey } = req.body;
+  console.log("📥 view 받은 데이터:", media, userkey);
   logs.push({ media, userkey, event: 'view', timestamp: new Date() });
   res.status(200).send({ ok: true });
 });
 
 app.post('/track/complete', (req, res) => {
   const { media, userkey } = req.body;
+  console.log("📥 complete 받은 데이터:", media, userkey);
   logs.push({ media, userkey, event: 'complete', timestamp: new Date() });
   res.status(200).send({ ok: true });
 });
