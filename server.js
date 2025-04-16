@@ -14,6 +14,15 @@ app.use(express.json());
 // 로그 저장 배열 (임시 DB 대용)
 const logs = [];
 
+//db.json
+const { Low, JSONFile } = require('lowdb');
+const adapter = new JSONFile('db.json'); // 로컬 JSON 파일 지정
+const db = new Low(adapter);
+
+await db.read();            // 파일에서 읽기
+db.data ||= { logs: [] };   // 초기 구조 설정 (없으면 생성)
+
+//view
 app.post('/track/view', (req, res) => {
   const { media, userkey } = req.body;
   console.log("📥 view 받은 데이터:", media, userkey);
@@ -21,6 +30,7 @@ app.post('/track/view', (req, res) => {
   res.status(200).send({ ok: true });
 });
 
+//complete
 app.post('/track/complete', (req, res) => {
   const { media, userkey } = req.body;
   console.log("📥 complete 받은 데이터:", media, userkey);
@@ -36,3 +46,6 @@ app.get('/track/logs', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Tracker API running at ${port}`);
 });
+
+
+
