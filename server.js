@@ -16,6 +16,7 @@ app.use(cors({
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
+app.options('*', cors()); // ✅ preflight OPTIONS 응답 허용
 app.use(express.json());
 
 // db.json 연동
