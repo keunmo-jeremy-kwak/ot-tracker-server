@@ -10,7 +10,12 @@ function getKoreaTime() {
 }
 
 // CORS + JSON
-app.use(require('cors')());
+const cors = require('cors');
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
 app.use(express.json());
 
 // db.json 연동
