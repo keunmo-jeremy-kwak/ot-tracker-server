@@ -30,6 +30,7 @@ const db = new Low(adapter);
 // ✅ 트래킹 API 등록 함수
 function registerTrackingRoute(endpoint, defaultEventType) {
   app.post(endpoint, async (req, res) => {
+    console.log("📨 req.body 전체:", req.body);
     const {
       ad_adv,
       ad_campaign,
@@ -63,9 +64,6 @@ function registerTrackingRoute(endpoint, defaultEventType) {
     res.status(200).send({ ok: true });
   });
 }
-
-console.log("📨 req.body 전체:", req.body);
-
 
 // ✅ view, complete 라우팅 등록
 registerTrackingRoute('/track/view', 'view');
