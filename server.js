@@ -1,31 +1,79 @@
+// server.js
 const express = require('express');
+const cors = require('cors');
+const { Low, JSONFile } = require('lowdb');
+
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 📌 한국 시간 함수 정의
+// 📌 한국 시간 함수
 function getKoreaTime() {
   return new Date().toLocaleString("ko-KR", {
-    timeZone: "Asia/Seoul",
+    timeZone: "Asia/Seoul"
   });
 }
 
-// CORS + JSON
-const cors = require('cors');
+// ✅ CORS 허용
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type']
 }));
-app.options('*', cors()); // ✅ preflight OPTIONS 응답 허용
+app.options('*', cors());
+
 app.use(express.json());
 
-// db.json 연동
-const { Low, JSONFile } = require('lowdb');
+// ✅ LowDB 연결
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter);
-const db = new Low(adapter);
 
-// ✅ DB 초기화 및 서버 실행
+// ✅ 트래킹 API 등록 함수
+function registerTrackingRoute(endpoint, defaultEventType) {
+  app.post(endpoint, async (req, res) => {
+    const {
+      ad_adv,
+      ad_campaign,
+      ad_media,
+      ad_user,
+      ad_source,
+      ad_format,
+      event
+    } = req.body;
+
+    // 필수 파라미터 체크
+    if (!ad_media || !ad_user) {
+      return res.status(400).json({ ok: false, error: 'Missing ad_media or ad_user' });
+    }
+
+    const timestamp = getKoreaTime();
+    console.log(`📥 ${defaultEventType} 받은 데이터:`, ad_media, ad_user);
+
+    db.data.logs.push({
+      ad_adv,
+      ad_campaign,
+      ad_media,
+      ad_user,
+      ad_source,
+      ad_format,
+      event: event || defaultEventType,
+      timestamp
+    });
+
+    await db.write();
+    res.status(200).send({ ok: true });
+  });
+}
+
+// ✅ view, complete 라우팅 등록
+registerTrackingRoute('/track/view', 'view');
+registerTrackingRoute('/track/complete', 'complete');
+
+// ✅ 로그 전체 조회용
+app.get('/track/logs', (req, res) => {
+  res.json(db.data.logs);
+});
+
+// ✅ 서버 실행 (async 함수 안에서 await 사용 가능)
 async function startServer() {
   await db.read();
   db.data ||= { logs: [] };
@@ -36,74 +84,3 @@ async function startServer() {
 }
 
 startServer();
-
-db.data ||= { logs: [] };
-
-// 📥 트래킹 API (view + complete 공통 구조)
-app.post('/track/view', async (req, res) => {
-  const {
-    ad_adv,
-    ad_campaign,
-    ad_media,
-    ad_user,
-    ad_source,
-    ad_format,
-    event
-  } = req.body;
-
-  const timestamp = getKoreaTime();
-  console.log("📥 view 받은 데이터:", ad_media, ad_user);
-
-  db.data.logs.push({
-    ad_adv,
-    ad_campaign,
-    ad_media,
-    ad_user,
-    ad_source,
-    ad_format,
-    event: event || 'view',
-    timestamp
-  });
-
-  await db.write();
-  res.status(200).send({ ok: true });
-});
-
-app.post('/track/complete', async (req, res) => {
-  const {
-    ad_adv,
-    ad_campaign,
-    ad_media,
-    ad_user,
-    ad_source,
-    ad_format,
-    event
-  } = req.body;
-
-  const timestamp = getKoreaTime();
-  console.log("📥 complete 받은 데이터:", ad_media, ad_user);
-
-  db.data.logs.push({
-    ad_adv,
-    ad_campaign,
-    ad_media,
-    ad_user,
-    ad_source,
-    ad_format,
-    event: event || 'complete',
-    timestamp
-  });
-
-  await db.write();
-  res.status(200).send({ ok: true });
-});
-
-// 로그 조회
-app.get('/track/logs', (req, res) => {
-  res.json(db.data.logs);
-});
-
-app.listen(port, () => {
-  console.log(`🚀 Tracker API running at ${port}`);
-});
-
