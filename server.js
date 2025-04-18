@@ -26,21 +26,61 @@ const db = new Low(adapter);
 await db.read();
 db.data ||= { logs: [] };
 
-// 트래킹 API
+// 📥 트래킹 API (view + complete 공통 구조)
 app.post('/track/view', async (req, res) => {
-  const { media, userkey } = req.body;
+  const {
+    ad_adv,
+    ad_campaign,
+    ad_media,
+    ad_user,
+    ad_source,
+    ad_format,
+    event
+  } = req.body;
+
   const timestamp = getKoreaTime();
-  console.log("📥 view 받은 데이터:", media, userkey);
-  db.data.logs.push({ media, userkey, event: 'view', timestamp });
+  console.log("📥 view 받은 데이터:", ad_media, ad_user);
+
+  db.data.logs.push({
+    ad_adv,
+    ad_campaign,
+    ad_media,
+    ad_user,
+    ad_source,
+    ad_format,
+    event: event || 'view',
+    timestamp
+  });
+
   await db.write();
   res.status(200).send({ ok: true });
 });
 
 app.post('/track/complete', async (req, res) => {
-  const { media, userkey } = req.body;
+  const {
+    ad_adv,
+    ad_campaign,
+    ad_media,
+    ad_user,
+    ad_source,
+    ad_format,
+    event
+  } = req.body;
+
   const timestamp = getKoreaTime();
-  console.log("📥 complete 받은 데이터:", media, userkey);
-  db.data.logs.push({ media, userkey, event: 'complete', timestamp });
+  console.log("📥 complete 받은 데이터:", ad_media, ad_user);
+
+  db.data.logs.push({
+    ad_adv,
+    ad_campaign,
+    ad_media,
+    ad_user,
+    ad_source,
+    ad_format,
+    event: event || 'complete',
+    timestamp
+  });
+
   await db.write();
   res.status(200).send({ ok: true });
 });
@@ -53,3 +93,4 @@ app.get('/track/logs', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Tracker API running at ${port}`);
 });
+
