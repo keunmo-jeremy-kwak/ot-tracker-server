@@ -1,34 +1,29 @@
-// ✅ lowdb v3 + express server (ESM 아님, commonjs 기준)
-const express = require('express');
-const cors = require('cors');
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node'); // v3에서는 이 방식!
+import express from 'express';
+import cors from 'cors';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node'; // v5 이상에서 이 방식 사용
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ 한국 시간 포맷 함수
+// ✅ 한국 시간
 function getKoreaTime() {
-  return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  return new Date().toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul"
+  });
 }
 
-// ✅ JSON 파싱 + CORS 설정
+// ✅ DB 연결
+const adapter = new JSONFile('db.json');
+const db = new Low(adapter);
+await db.read();
+db.data ||= { logs: [] };
+
+// ✅ 미들웨어
 app.use(cors());
 app.use(express.json());
 
-// ✅ lowdb 연결
-const adapter = new JSONFile('db.json');
-const db = new Low(adapter);
-
-// ✅ 초기화
-async function initDB() {
-  await db.read();
-  db.data ||= { logs: [] };
-  await db.write();
-}
-await initDB();
-
-// ✅ 공통 트래킹 라우터
+// ✅ 공통 트래커 등록 함수
 function registerTrackingRoute(endpoint, defaultEventType) {
   app.post(endpoint, async (req, res) => {
     const {
@@ -47,7 +42,7 @@ function registerTrackingRoute(endpoint, defaultEventType) {
     }
 
     const timestamp = getKoreaTime();
-    console.log(`📥 ${defaultEventType} 수신:`, ad_media, ad_user);
+    console.log(`📥 ${defaultEventType} 받은 데이터:`, ad_media, ad_user);
 
     db.data.logs.push({
       ad_adv,
@@ -65,12 +60,12 @@ function registerTrackingRoute(endpoint, defaultEventType) {
   });
 }
 
+// ✅ 라우트 등록
 registerTrackingRoute('/track/view', 'view');
 registerTrackingRoute('/track/complete', 'complete');
 
-// ✅ 로그 전체 조회
-app.get('/track/logs', async (req, res) => {
-  await db.read();
+// ✅ 로그 조회
+app.get('/track/logs', (req, res) => {
   res.json(db.data.logs);
 });
 
