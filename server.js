@@ -1,30 +1,36 @@
+// ✅ lowdb v3 + express server (ESM 아님, commonjs 기준)
 const express = require('express');
 const cors = require('cors');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
+const { Low } = require('lowdb');
+const { JSONFile } = require('lowdb/node'); // v3에서는 이 방식!
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// ✅ 한국 시간
+// ✅ 한국 시간 포맷 함수
 function getKoreaTime() {
-  return new Date().toLocaleString("ko-KR", {
-    timeZone: "Asia/Seoul"
-  });
+  return new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 }
 
-// ✅ DB 세팅 (v1 방식)
-const adapter = new FileSync('db.json');
-const db = low(adapter);
-db.defaults({ logs: [] }).write();
-
-// ✅ CORS & JSON
+// ✅ JSON 파싱 + CORS 설정
 app.use(cors());
 app.use(express.json());
 
-// ✅ 공통 트래커
+// ✅ lowdb 연결
+const adapter = new JSONFile('db.json');
+const db = new Low(adapter);
+
+// ✅ 초기화
+async function initDB() {
+  await db.read();
+  db.data ||= { logs: [] };
+  await db.write();
+}
+await initDB();
+
+// ✅ 공통 트래킹 라우터
 function registerTrackingRoute(endpoint, defaultEventType) {
-  app.post(endpoint, (req, res) => {
+  app.post(endpoint, async (req, res) => {
     const {
       ad_adv,
       ad_campaign,
@@ -36,26 +42,25 @@ function registerTrackingRoute(endpoint, defaultEventType) {
     } = req.body;
 
     if (!ad_media || !ad_user) {
-      console.warn("❗ 필수 파라미터 누락", req.body);
-      return res.status(400).json({ ok: false, error: "Missing ad_media or ad_user" });
+      console.warn('❗ 필수 파라미터 누락:', req.body);
+      return res.status(400).json({ ok: false, error: 'Missing ad_media or ad_user' });
     }
 
     const timestamp = getKoreaTime();
-    console.log(`📥 ${defaultEventType} 받은 데이터:`, ad_media, ad_user);
+    console.log(`📥 ${defaultEventType} 수신:`, ad_media, ad_user);
 
-    db.get('logs')
-      .push({
-        ad_adv,
-        ad_campaign,
-        ad_media,
-        ad_user,
-        ad_source,
-        ad_format,
-        event: event || defaultEventType,
-        timestamp
-      })
-      .write();
+    db.data.logs.push({
+      ad_adv,
+      ad_campaign,
+      ad_media,
+      ad_user,
+      ad_source,
+      ad_format,
+      event: event || defaultEventType,
+      timestamp
+    });
 
+    await db.write();
     res.status(200).json({ ok: true });
   });
 }
@@ -63,11 +68,13 @@ function registerTrackingRoute(endpoint, defaultEventType) {
 registerTrackingRoute('/track/view', 'view');
 registerTrackingRoute('/track/complete', 'complete');
 
-app.get('/track/logs', (req, res) => {
-  const logs = db.get('logs').value();
-  res.json(logs);
+// ✅ 로그 전체 조회
+app.get('/track/logs', async (req, res) => {
+  await db.read();
+  res.json(db.data.logs);
 });
 
+// ✅ 서버 시작
 app.listen(port, () => {
   console.log(`🚀 Tracker API running at ${port}`);
 });
