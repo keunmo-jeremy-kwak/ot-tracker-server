@@ -6,27 +6,25 @@ const FileSync = require('lowdb/adapters/FileSync');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// 한국 시간 함수
+// ✅ 한국 시간
 function getKoreaTime() {
   return new Date().toLocaleString("ko-KR", {
     timeZone: "Asia/Seoul"
   });
 }
 
-// CORS + JSON 파싱
-app.use(cors({ origin: '*', methods: ['GET', 'POST'], allowedHeaders: ['Content-Type'] }));
-app.options('*', cors());
-app.use(express.json());
-
-// DB 연결
+// ✅ DB 세팅 (v1 방식)
 const adapter = new FileSync('db.json');
 const db = low(adapter);
+db.defaults({ logs: [] }).write();
 
-// 공통 라우터
+// ✅ CORS & JSON
+app.use(cors());
+app.use(express.json());
+
+// ✅ 공통 트래커
 function registerTrackingRoute(endpoint, defaultEventType) {
-  app.post(endpoint, async (req, res) => {
-    console.log("📨 [RAW] req.body 전체:", req.body);
-
+  app.post(endpoint, (req, res) => {
     const {
       ad_adv,
       ad_campaign,
@@ -38,44 +36,38 @@ function registerTrackingRoute(endpoint, defaultEventType) {
     } = req.body;
 
     if (!ad_media || !ad_user) {
-      console.warn("❗ 필수 파라미터 누락:", req.body);
-      return res.status(400).json({ ok: false, error: 'Missing ad_media or ad_user' });
+      console.warn("❗ 필수 파라미터 누락", req.body);
+      return res.status(400).json({ ok: false, error: "Missing ad_media or ad_user" });
     }
 
     const timestamp = getKoreaTime();
     console.log(`📥 ${defaultEventType} 받은 데이터:`, ad_media, ad_user);
 
-    db.data.logs.push({
-      ad_adv,
-      ad_campaign,
-      ad_media,
-      ad_user,
-      ad_source,
-      ad_format,
-      event: event || defaultEventType,
-      timestamp
-    });
+    db.get('logs')
+      .push({
+        ad_adv,
+        ad_campaign,
+        ad_media,
+        ad_user,
+        ad_source,
+        ad_format,
+        event: event || defaultEventType,
+        timestamp
+      })
+      .write();
 
-    await db.write();
-    res.status(200).send({ ok: true });
+    res.status(200).json({ ok: true });
   });
 }
 
-// 서버 실행
-async function startServer() {
-  await db.read();
-  db.data ||= { logs: [] };
+registerTrackingRoute('/track/view', 'view');
+registerTrackingRoute('/track/complete', 'complete');
 
-  registerTrackingRoute('/track/view', 'view');
-  registerTrackingRoute('/track/complete', 'complete');
+app.get('/track/logs', (req, res) => {
+  const logs = db.get('logs').value();
+  res.json(logs);
+});
 
-  app.get('/track/logs', (req, res) => {
-    res.json([...db.data.logs].reverse());
-  });
-
-  app.listen(port, () => {
-    console.log(`🚀 Tracker API running at ${port}`);
-  });
-}
-
-startServer();
+app.listen(port, () => {
+  console.log(`🚀 Tracker API running at ${port}`);
+});
