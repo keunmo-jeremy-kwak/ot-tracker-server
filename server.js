@@ -64,6 +64,9 @@ function registerTrackingRoute(endpoint, defaultEventType) {
   });
 }
 
+console.log("📨 req.body 전체:", req.body);
+
+
 // ✅ view, complete 라우팅 등록
 registerTrackingRoute('/track/view', 'view');
 registerTrackingRoute('/track/complete', 'complete');
