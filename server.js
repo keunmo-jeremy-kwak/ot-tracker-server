@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const { Low } = require('lowdb');
-const { JSONFile } = require('lowdb/node');
+const low = require('lowdb');
+const FileSync = require('lowdb/adapters/FileSync');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -19,8 +19,8 @@ app.options('*', cors());
 app.use(express.json());
 
 // DB 연결
-const adapter = new JSONFile('db.json');
-const db = new Low(adapter);
+const adapter = new FileSync('db.json');
+const db = low(adapter);
 
 // 공통 라우터
 function registerTrackingRoute(endpoint, defaultEventType) {
