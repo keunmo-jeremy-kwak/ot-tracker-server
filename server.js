@@ -23,7 +23,20 @@ app.use(express.json());
 const { Low, JSONFile } = require('lowdb');
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter);
-await db.read();
+const db = new Low(adapter);
+
+// ✅ DB 초기화 및 서버 실행
+async function startServer() {
+  await db.read();
+  db.data ||= { logs: [] };
+
+  app.listen(port, () => {
+    console.log(`🚀 Tracker API running at ${port}`);
+  });
+}
+
+startServer();
+
 db.data ||= { logs: [] };
 
 // 📥 트래킹 API (view + complete 공통 구조)
